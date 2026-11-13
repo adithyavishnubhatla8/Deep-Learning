@@ -1,0 +1,61 @@
+<!-- VisionPort Dashboard Component -->
+<div class="visionport-container">
+  <header>
+    <h1>VisionPort Live Portal: Indian Traffic Analyzer</h1>
+    <p>Upload a street snapshot to see deep learning inference instantly.</p>
+  </header>
+
+  <!-- Status Cards -->
+  <div class="metrics-grid">
+    <div class="card"><strong>System Status:</strong> <span class="status-online">Active</span></div>
+    <div class="card"><strong>Model Architecture:</strong> YOLOv8 Nano</div>
+    <div class="card"><strong>Avg Latency:</strong> ~45ms</div>
+  </div>
+
+  <!-- Main Interface -->
+  <div class="workspace">
+    <div class="upload-section">
+      <h3>Drop Traffic Image Here</h3>
+      <input type="file" id="traffic-uploader" accept="image/*" onchange="processImage(event)" />
+    </div>
+
+    <div class="results-display">
+      <div class="view-panel">
+        <h4>Live Output Stream</h4>
+        <img id="output-preview" src="placeholder-traffic.jpg" alt="Inference Output" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function processImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Update UI to show processing state
+    const outputImg = document.getElementById("output-preview");
+    outputImg.style.opacity = "0.5";
+
+    try {
+      // Hit the FastAPI backend endpoint
+      const response = await fetch("http://localhost:8000/detect/", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) throw new Error("Inference failed");
+
+      // Convert the returning stream into a displayable URL object
+      const blob = await response.blob();
+      outputImg.src = URL.createObjectURL(blob);
+    } catch (error) {
+      alert("Error contacting the deep learning backend: " + error.message);
+    } finally {
+      outputImg.style.opacity = "1";
+    }
+  }
+</script>
