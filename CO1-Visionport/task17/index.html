@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionPort - Task 17: Detect Vehicles Making Wrong Turns at Intersections</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 30px 16px;
+        }
+        .container {
+            max-width: 920px;
+            margin: auto;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .badge {
+            background: #e11d48;
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            letter-spacing: 0.4px;
+        }
+        h1 {
+            font-size: 22px;
+            margin: 0;
+            color: #f8fafc;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin: 6px 0 22px 0;
+            font-size: 14px;
+        }
+        .upload-box {
+            border: 2px dashed #475569;
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 22px;
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        input[type="file"] {
+            color: #cbd5e1;
+            font-size: 14px;
+            margin-bottom: 14px;
+        }
+        .controls-row {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .controls-row label {
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+        .controls-row select, .controls-row input {
+            background: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 13px;
+        }
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button, .download-btn {
+            background: #e11d48;
+            color: #ffffff;
+            border: none;
+            padding: 11px 22px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        button:hover, .download-btn:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .download-btn { background: #10b981; }
+        .status {
+            margin-top: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #38bdf8;
+        }
+        .error { color: #f87171; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        .video-wrapper {
+            display: none;
+            margin-top: 20px;
+            background: #020617;
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #334155;
+        }
+        video {
+            width: 100%;
+            max-height: 500px;
+            border-radius: 8px;
+            background: #000;
+            display: block;
+        }
+        .video-actions {
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="badge">TASK 17</span>
+            <h1>Detect Vehicles Making Wrong Turns at Intersections</h1>
+        </div>
+        <p class="subtitle">Analyzes multi-frame vehicle trajectory vectors at intersections to flag illegal sharp turns and prohibited U-turns.</p>
+
+        <div class="upload-box">
+            <input type="file" id="videoFile" accept="video/*"><br>
+            
+        <div class="controls-row">
+            <label>Intersection Turn Rule:
+                <select id="turnRule">
+                    <option value="sharp_or_uturn" selected>No Sharp Turn / U-Turn (&gt; 55°)</option>
+                    <option value="no_left">No Left Turn Allowed</option>
+                    <option value="no_right">No Right Turn Allowed</option>
+                </select>
+            </label>
+        </div>
+        
+            <div class="btn-row">
+                <button id="processBtn" onclick="processVideo()">Upload & Process Video</button>
+            </div>
+            <div id="statusMsg" class="status"></div>
+        </div>
+
+        <div id="statsContainer" class="stats-grid" style="display:none;"></div>
+
+        <div id="videoWrapper" class="video-wrapper">
+            <video id="outputVideo" controls autoplay loop muted playsinline></video>
+            <div class="video-actions">
+                <span style="font-size: 13px; color: #94a3b8;">Processed output video playing live</span>
+                <a id="downloadLink" class="download-btn" href="#" download>Download Output Video</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function processVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const statusMsg = document.getElementById('statusMsg');
+            const btn = document.getElementById('processBtn');
+            const videoWrapper = document.getElementById('videoWrapper');
+            const outputVideo = document.getElementById('outputVideo');
+            const downloadLink = document.getElementById('downloadLink');
+            const statsContainer = document.getElementById('statsContainer');
+
+            if (!fileInput.files.length) {
+                statusMsg.innerHTML = '<span class="error">Please select a traffic video file first.</span>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+        formData.append('turn_rule', document.getElementById('turnRule').value);
+        
+
+            btn.disabled = true;
+            statusMsg.innerText = 'Processing video frames... Please wait.';
+            videoWrapper.style.display = 'none';
+            statsContainer.style.display = 'none';
+
+            try {
+                const response = await fetch('/process-video/', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Video processing failed.');
+                }
+
+                statusMsg.innerText = 'Processing complete!';
+                
+        statsContainer.innerHTML = `
+            <div class="stat-card"><div class="stat-label">Intersection Status</div><div class="stat-value">${data.status}</div></div>
+            <div class="stat-card"><div class="stat-label">Wrong-Turn Vehicles</div><div class="stat-value" style="color:#f87171;">${data.wrong_turn_count}</div></div>
+            <div class="stat-card"><div class="stat-label">Total Tracked</div><div class="stat-value">${data.total_vehicles}</div></div>
+        `;
+        statsContainer.style.display = 'grid';
+        
+
+                outputVideo.src = data.video_url + '?t=' + Date.now();
+                outputVideo.load();
+                downloadLink.href = data.video_url;
+                downloadLink.download = data.download_name || 'VisionPort_Task17_Output.webm';
+                videoWrapper.style.display = 'block';
+            } catch (err) {
+                statusMsg.innerHTML = `<span class="error">Error: ${err.message}</span>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
